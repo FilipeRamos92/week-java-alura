@@ -1,4 +1,6 @@
+import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -14,10 +16,9 @@ public class WeekJava {
 
         List<Movie> movies = parse(json);
 
-        System.out.println(movies.get(0).title);
-        System.out.println(movies.get(0).year);
-        System.out.println(movies.get(0).rating);
-        System.out.println(movies.get(0).urlImage);
+        PrintWriter writer = new PrintWriter(new File("./index.html"));
+        HTMLGenerator htmlGenerator = new HTMLGenerator(writer);
+        htmlGenerator.generate(movies);
     }
 
     private static List<Movie> parse(String json) {
