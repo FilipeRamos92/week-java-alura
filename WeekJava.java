@@ -3,59 +3,76 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class WeekJava {
     public static void main(String[] args) throws IOException, InterruptedException {
         ImdbConsumer consumer = new ImdbConsumer("https://imdb-api.com/en/API/Top250Movies/");
 
-        Pattern titlePattern = Pattern.compile("title");
-        Pattern imagesPattern = Pattern.compile("image");
-        Pattern yearPattern = Pattern.compile("year");
-        Pattern ratingPattern = Pattern.compile("\\b"+"imDbRating"+"\\b");
+        String json = consumer.getJSON();
 
-        String consumerResponse = consumer.getJSON();
+        List<Movie> movies = parse(json);
 
-        ArrayList<Movie> movies = new ArrayList<>();
+        System.out.println(movies.get(0).title);
+        System.out.println(movies.get(0).year);
+        System.out.println(movies.get(0).rating);
+        System.out.println(movies.get(0).urlImage);
+    }
 
-        String[] parts = consumerResponse.split(",");
+    private static List<Movie> parse(String json) {
+        String[] moviesArray = parseJsonMovies(json);
 
-        for (String p : parts) {
-            Matcher titleMatcher = titlePattern.matcher(p);
-            Matcher imagesMatcher = imagesPattern.matcher(p);
-            Matcher yearMatcher = yearPattern.matcher(p);
-            Matcher ratingMatcher = ratingPattern.matcher(p);
+        List<String> titles = parseTitles(moviesArray);
+        List<String> urlImages = parseUrlImages(moviesArray);
+        List<String> ratings = parseRatings(moviesArray);
+        List<String> years = parseYears(moviesArray);
 
-            String t = "";
-            String u = "";
-            String r = "";
-            String y = "";
+        List<Movie> movies = new ArrayList<>(titles.size());
 
-            if (titleMatcher.find()) {
-                String[] title = p.split(":");
-                t = title[1];
-            } else if (imagesMatcher.find()) {
-                String[] image = p.split(":");
-                u = image[1] + image[2];
-            } else if (yearMatcher.find()) {
-                String[] year = p.split(":");
-                y = year[1];
-            } else if (ratingMatcher.find()) {
-                String[] rating = p.split(":");
-                r = rating[1];
-            }
-
-            if (
-                t == null || u == null || y == null || r == null ||
-                t == "" || u == "" || y == "" || r == "") {
-                continue;
-            }
-
-            Movie movie = new Movie(t, u, r, y);
-            movies.add(movie);
+        for(int i=0; i < titles.size(); i++) {
+            movies.add(new Movie(titles.get(i), urlImages.get(i), ratings.get(i), years.get(i)));
         }
-        for (Movie movie : movies) {
-            movie.getAttributes();
+        return movies;
+    }
+
+    private static String[] parseJsonMovies(String json) {
+        Matcher matcher = Pattern.compile(".*\\[(.*)\\].*").matcher(json);
+
+        if(!matcher.matches()) {
+            throw new IllegalArgumentException("na match in " + json);
         }
+
+        String[] moviesArray = matcher.group(1).split("\\},\\{");
+        moviesArray[0] = moviesArray[0].substring(1);
+        int last = moviesArray.length - 1;
+        String lastString = moviesArray[last];
+        moviesArray[last] = lastString.substring(0, lastString.length() - 1);
+        return moviesArray;
+    }
+
+    private static List<String> parseAttribute(String[] jsonMovies, int pos) {
+        return Stream.of(jsonMovies)
+            .map(e -> e.split("\",\"")[pos])
+            .map(e -> e.split(":\"")[1])
+            .map(e -> e.replaceAll("\"", ""))
+            .collect(Collectors.toList());
+    }
+
+    private static List<String> parseTitles(String[] moviesArray) {
+        return parseAttribute(moviesArray, 3);
+    }
+
+    private static List<String> parseUrlImages(String[] moviesArray) {
+        return parseAttribute(moviesArray, 5);
+    }
+
+    private static List<String> parseRatings(String[] moviesArray) {
+        return parseAttribute(moviesArray, 7);
+    }
+
+    private static List<String> parseYears(String[] moviesArray) { 
+        return parseAttribute(moviesArray, 4);
     }
 }
 

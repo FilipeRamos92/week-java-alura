@@ -43,12 +43,4 @@ public class Movie {
         this.year = year;
     }
 
-    public void getAttributes() {
-        System.out.println(
-            "Title: " + title + " " +
-            "Image: " + urlImage + " " +
-            "Rating: " + rating + " " +
-            "Year: " + year
-        );
-    }
 }
